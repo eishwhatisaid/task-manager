@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Firebase configuration
+        const FIREBASE_CONFIG = {
+          apiKey: "AIzaSyBOPxLx62G7NlGGFtPzs9I2G1wH7aeDBkg",
+          authDomain: "keep-it-clean-3c7ab.firebaseapp.com",
+          databaseURL: "https://keep-it-clean-3c7ab-default-rtdb.firebaseio.com",
+          projectId: "keep-it-clean-3c7ab",
+          storageBucket: "keep-it-clean-3c7ab.firebasestorage.app",
+          messagingSenderId: "755262970983",
+          appId: "1:755262970983:web:361fa9aeb5e2e6d1d248c2",
+          measurementId: "G-HNTEE9YXB0"
+        };
+
+        // Lucide Icons as inline SVGs
+        const Calendar = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        );
+        
+        const Clock = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        );
+        
+        const Plus = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        );
+        
+        const Edit2 = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+        );
+        
+        const Trash2 = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        );
+        
+        const Check = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        );
+        
+        const Play = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        );
+        
+        const History = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
+        );
+        
+        const LogOut = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        );
+        
+        const User = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        );
+
+        const CleanerTaskApp = () => {
+          const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+          const [firebase, setFirebase] = useState(null);
+          const [user, setUser] = useState(null);
+          const [tasks, setTasks] = useState([]);
+          const [history, setHistory] = useState([]);
+          const [activeTasks, setActiveTasks] = useState({});
+          const [showAddTask, setShowAddTask] = useState(false);
+          const [editingTask, setEditingTask] = useState(null);
+          const [view, setView] = useState('tasks');
+          const [loading, setLoading] = useState(true);
+          const [newTask, setNewTask] = useState({
+            title: '',
+            description: '',
+            time: '',
+            recurrence: 'weekdays',
+            isAdhoc: false,
+            adhocDate: ''
+          });
+
+          const [loginForm, setLoginForm] = useState({
+            email: '',
+            password: '',
+            displayName: '',
+            role: 'cleaner',
+            isRegistering: false
+          });
+
+          useEffect(() => {
+            const initFirebase = async () => {
+              try {
+                const { initializeApp } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
+                const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js');
+                const { getDatabase, ref, set, push, onValue, remove, update } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js');
+
+                const app = initializeApp(FIREBASE_CONFIG);
+                const auth = getAuth(app);
+                const db = getDatabase(app);
+
+                setFirebase({ auth, db, ref, set, push, onValue, remove, update, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile });
+                setFirebaseInitialized(true);
+
+                onAuthStateChanged(auth, async (firebaseUser) => {
+                  if (firebaseUser) {
+                    const userRef = ref(db, `users/${firebaseUser.uid}`);
+                    onValue(userRef, (snapshot) => {
+                      const userData = snapshot.val();
+                      setUser({
+                        uid: firebaseUser.uid,
+                        email: firebaseUser.email,
+                        displayName: firebaseUser.displayName || firebaseUser.email,
+                        role: userData?.role || 'cleaner'
+                      });
+                      setLoading(false);
+                    });
+                  } else {
+                    setUser(null);
+                    setLoading(false);
+                  }
+                });
+              } catch (error) {
+                console.error("Firebase initialization error:", error);
+                alert("Failed to initialize Firebase. Please check your configuration.");
+                setLoading(false);
+              }
+            };
+
+            initFirebase();
+          }, []);
+
+          useEffect(() => {
+            if (firebase && user) {
+              const tasksRef = firebase.ref(firebase.db, 'tasks');
+              firebase.onValue(tasksRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                  const tasksList = Object.keys(data).map(key => ({
+                    id: key,
+                    ...data[key]
+                  }));
+                  setTasks(tasksList);
+                } else {
+                  setTasks([]);
+                }
+              });
+            }
+          }, [firebase, user]);
+
+          useEffect(() => {
+            if (firebase && user) {
+              const historyRef = firebase.ref(firebase.db, 'history');
+              firebase.onValue(historyRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                  const historyList = Object.keys(data).map(key => ({
+                    id: key,
+                    ...data[key],
+                    startTime: new Date(data[key].startTime),
+                    endTime: new Date(data[key].endTime)
+                  })).sort((a, b) => b.endTime - a.endTime);
+                  setHistory(historyList);
+                } else {
+                  setHistory([]);
+                }
+              });
+            }
+          }, [firebase, user]);
+
+          const handleRegister = async () => {
+            if (!loginForm.email || !loginForm.password || !loginForm.displayName) {
+              alert('Please fill in all fields');
+              return;
+            }
+
+            try {
+              const userCredential = await firebase.createUserWithEmailAndPassword(
+                firebase.auth,
+                loginForm.email,
+                loginForm.password
+              );
+
+              await firebase.updateProfile(userCredential.user, {
+                displayName: loginForm.displayName
+              });
+
+              await firebase.set(firebase.ref(firebase.db, `users/${userCredential.user.uid}`), {
+                email: loginForm.email,
+                displayName: loginForm.displayName,
+                role: loginForm.role,
+                createdAt: new Date().toISOString()
+              });
+
+              setLoginForm({ email: '', password: '', displayName: '', role: 'cleaner', isRegistering: false });
+            } catch (error) {
+              alert(`Registration failed: ${error.message}`);
+            }
+          };
+
+          const handleLogin = async () => {
+            if (!loginForm.email || !loginForm.password) {
+              alert('Please fill in all fields');
+              return;
+            }
+
+            try {
+              await firebase.signInWithEmailAndPassword(
+                firebase.auth,
+                loginForm.email,
+                loginForm.password
+              );
+            } catch (error) {
+              alert(`Login failed: ${error.message}`);
+            }
+          };
+
+          const handleLogout = async () => {
+            try {
+              await firebase.signOut(firebase.auth);
+              setActiveTasks({});
+            } catch (error) {
+              alert(`Logout failed: ${error.message}`);
+            }
+          };
+
+          const handleAddTask = async () => {
+            if (!newTask.title || !newTask.time) {
+              alert('Please fill in title and time');
+              return;
+            }
+
+            try {
+              if (editingTask) {
+                await firebase.update(firebase.ref(firebase.db, `tasks/${editingTask.id}`), {
+                  ...newTask,
+                  updatedAt: new Date().toISOString(),
+                  updatedBy: user.displayName
+                });
+                setEditingTask(null);
+              } else {
+                const newTaskRef = firebase.push(firebase.ref(firebase.db, 'tasks'));
+                await firebase.set(newTaskRef, {
+                  ...newTask,
+                  createdAt: new Date().toISOString(),
+                  createdBy: user.displayName
+                });
+              }
+
+              setNewTask({
+                title: '',
+                description: '',
+                time: '',
+                recurrence: 'weekdays',
+                isAdhoc: false,
+                adhocDate: ''
+              });
+              setShowAddTask(false);
+            } catch (error) {
+              alert(`Failed to save task: ${error.message}`);
+            }
+          };
+
+          const handleEditTask = (task) => {
+            setNewTask({
+              title: task.title,
+              description: task.description,
+              time: task.time,
+              recurrence: task.recurrence,
+              isAdhoc: task.isAdhoc,
+              adhocDate: task.adhocDate || ''
+            });
+            setEditingTask(task);
+            setShowAddTask(true);
+          };
+
+          const handleDeleteTask = async (id) => {
+            if (confirm('Are you sure you want to delete this task?')) {
+              try {
+                await firebase.remove(firebase.ref(firebase.db, `tasks/${id}`));
+              } catch (error) {
+                alert(`Failed to delete task: ${error.message}`);
+              }
+            }
+          };
+
+          const handleStartTask = (task) => {
+            setActiveTasks({
+              ...activeTasks,
+              [task.id]: { startTime: new Date(), task }
+            });
+          };
+
+          const handleCompleteTask = async (taskId) => {
+            const active = activeTasks[taskId];
+            if (active) {
+              try {
+                const completionRecord = {
+                  taskTitle: active.task.title,
+                  taskId: taskId,
+                  startTime: active.startTime.toISOString(),
+                  endTime: new Date().toISOString(),
+                  completedBy: user.displayName,
+                  completedByUid: user.uid,
+                  date: new Date().toISOString().split('T')[0]
+                };
+
+                const newHistoryRef = firebase.push(firebase.ref(firebase.db, 'history'));
+                await firebase.set(newHistoryRef, completionRecord);
+
+                const newActive = { ...activeTasks };
+                delete newActive[taskId];
+                setActiveTasks(newActive);
+              } catch (error) {
+                alert(`Failed to complete task: ${error.message}`);
+              }
+            }
+          };
+
+          const getTasksForToday = () => {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const todayDate = today.toISOString().split('T')[0];
+
+            const completedToday = history
+              .filter(h => h.date === todayDate)
+              .map(h => h.taskId);
+
+            return tasks.filter(task => {
+              if (completedToday.includes(task.id)) return false;
+
+              if (task.isAdhoc) {
+                return task.adhocDate === todayDate;
+              }
+
+              if (task.recurrence === 'weekdays' && isWeekend) return false;
+              if (task.recurrence === 'weekends' && !isWeekend) return false;
+
+              return true;
+            });
+          };
+
+          const formatDuration = (start, end) => {
+            const diff = end - start;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+          };
+
+          if (loading) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading...</p>
+                </div>
+              </div>
+            );
+          }
+
+          if (!firebaseInitialized) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl">
+                  <h1 className="text-2xl font-bold text-red-600 mb-4">Firebase Setup Required</h1>
+                  <div className="space-y-4 text-gray-700">
+                    <p>Firebase configuration is missing or incorrect.</p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (!user) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+                  <div className="flex items-center justify-center mb-6">
+                    <User />
+                  </div>
+                  <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
+                    {loginForm.isRegistering ? 'Register' : 'Login'}
+                  </h1>
+                  <div className="space-y-4">
+                    {loginForm.isRegistering && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                          <input
+                            type="text"
+                            value={loginForm.displayName}
+                            onChange={(e) => setLoginForm({ ...loginForm, displayName: e.target.value })}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="Enter your name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                          <select
+                            value={loginForm.role}
+                            onChange={(e) => setLoginForm({ ...loginForm, role: e.target.value })}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          >
+                            <option value="cleaner">Cleaner</option>
+                            <option value="manager">Manager</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={loginForm.email}
+                        onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (loginForm.isRegistering ? handleRegister() : handleLogin())}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder="Enter email"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                      <input
+                        type="password"
+                        value={loginForm.password}
+                        onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (loginForm.isRegistering ? handleRegister() : handleLogin())}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder="Enter password"
+                      />
+                    </div>
+                    <button
+                      onClick={loginForm.isRegistering ? handleRegister : handleLogin}
+                      className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                    >
+                      {loginForm.isRegistering ? 'Register' : 'Login'}
+                    </button>
+                    <button
+                      onClick={() => setLoginForm({ ...loginForm, isRegistering: !loginForm.isRegistering })}
+                      className="w-full text-indigo-600 hover:text-indigo-700 text-sm"
+                    >
+                      {loginForm.isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="min-h-screen bg-gray-50">
+              <header className="bg-indigo-600 text-white shadow-lg">
+                <div className="container mx-auto px-4 py-4">
+                  <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold">Task Manager</h1>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm bg-indigo-700 px-3 py-1 rounded-full">
+                        {user.displayName} ({user.role})
+                      </span>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-800 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <LogOut />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              <div className="container mx-auto px-4 py-6">
+                <div className="flex gap-4 mb-6">
+                  <button
+                    onClick={() => setView('tasks')}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                      view === 'tasks' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Calendar />
+                    Tasks
+                  </button>
+                  <button
+                    onClick={() => setView('history')}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                      view === 'history' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <History />
+                    History
+                  </button>
+                </div>
+
+                {view === 'tasks' && (
+                  <div>
+                    {user.role === 'manager' && (
+                      <button
+                        onClick={() => {
+                          setShowAddTask(true);
+                          setEditingTask(null);
+                          setNewTask({
+                            title: '',
+                            description: '',
+                            time: '',
+                            recurrence: 'weekdays',
+                            isAdhoc: false,
+                            adhocDate: ''
+                          });
+                        }}
+                        className="mb-6 flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      >
+                        <Plus />
+                        Add Task
+                      </button>
+                    )}
+
+                    {showAddTask && user.role === 'manager' && (
+                      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 className="text-xl font-bold mb-4">{editingTask ? 'Edit Task' : 'New Task'}</h2>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                            <input
+                              type="text"
+                              value={newTask.title}
+                              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              placeholder="Task title"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea
+                              value={newTask.description}
+                              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              placeholder="Task description"
+                              rows="3"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                            <input
+                              type="time"
+                              value={newTask.time}
+                              onChange={(e) => setNewTask({ ...newTask, time: e.target.value })}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-2 mb-2">
+                              <input
+                                type="checkbox"
+                                checked={newTask.isAdhoc}
+                                onChange={(e) => setNewTask({ ...newTask, isAdhoc: e.target.checked })}
+                                className="w-4 h-4 text-indigo-600"
+                              />
+                              <span className="text-sm font-medium text-gray-700">Ad-hoc Task</span>
+                            </label>
+                          </div>
+                          {newTask.isAdhoc ? (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                              <input
+                                type="date"
+                                value={newTask.adhocDate}
+                                onChange={(e) => setNewTask({ ...newTask, adhocDate: e.target.value })}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Recurrence</label>
+                              <select
+                                value={newTask.recurrence}
+                                onChange={(e) => setNewTask({ ...newTask, recurrence: e.target.value })}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="weekdays">Weekdays Only</option>
+                                <option value="daily">Daily (Including Weekends)</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                              </select>
+                            </div>
+                          )}
+                          <div className="flex gap-3">
+                            <button
+                              onClick={handleAddTask}
+                              className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                            >
+                              {editingTask ? 'Update' : 'Add'} Task
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowAddTask(false);
+                                setEditingTask(null);
+                              }}
+                              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid gap-4">
+                      {getTasksForToday().map(task => (
+                        <div key={task.id} className="bg-white rounded-lg shadow-md p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-gray-800 mb-2">{task.title}</h3>
+                              <p className="text-gray-600 mb-3">{task.description}</p>
+                              <div className="flex flex-wrap gap-3 text-sm">
+                                <span className="flex items-center gap-1 text-indigo-600">
+                                  <Clock />
+                                  {task.time}
+                                </span>
+                                <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
+                                  {task.isAdhoc ? `Ad-hoc: ${task.adhocDate}` : task.recurrence}
+                                </span>
+                                {activeTasks[task.id] && (
+                                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full animate-pulse">
+                                    In Progress
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              {user.role === 'cleaner' && !activeTasks[task.id] && (
+                                <button
+                                  onClick={() => handleStartTask(task)}
+                                  className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                  title="Start Task"
+                                >
+                                  <Play />
+                                </button>
+                              )}
+                              {user.role === 'cleaner' && activeTasks[task.id] && (
+                                <button
+                                  onClick={() => handleCompleteTask(task.id)}
+                                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                  title="Complete Task"
+                                >
+                                  <Check />
+                                </button>
+                              )}
+                              {user.role === 'manager' && (
+                                <>
+                                  <button
+                                    onClick={() => handleEditTask(task)}
+                                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    title="Edit Task"
+                                  >
+                                    <Edit2 />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    title="Delete Task"
+                                  >
+                                    <Trash2 />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {getTasksForToday().length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <Calendar />
+                          <p>No tasks scheduled for today</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {view === 'history' && (
+                  <div className="bg-white rounded-lg shadow-md">
+                    <div className="p-6 border-b">
+                      <h2 className="text-2xl font-bold text-gray-800">Task History</h2>
+                    </div>
+                    <div className="divide-y">
+                      {history.map(record => (
+                        <div key={record.id} className="p-6 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-bold text-lg text-gray-800 mb-2">{record.taskTitle}</h3>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <p>Completed by: <span className="font-medium">{record.completedBy}</span></p>
+                                <p>Date: <span className="font-medium">{record.date}</span></p>
+                                <p>Start: <span className="font-medium">{new Date(record.startTime).toLocaleTimeString()}</span></p>
+                                <p>End: <span className="font-medium">{new Date(record.endTime).toLocaleTimeString()}</span></p>
+                                <p>Duration: <span className="font-medium text-indigo-600">
+                                  {formatDuration(new Date(record.startTime), new Date(record.endTime))}
+                                </span></p>
+                              </div>
+                            </div>
+                            <Check />
+                          </div>
+                        </div>
+                      ))}
+                      {history.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <History />
+                          <p>No completed tasks yet</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CleanerTaskApp />);
+    </script>
+</body>
+</html>
