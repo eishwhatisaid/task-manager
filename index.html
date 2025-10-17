@@ -252,13 +252,13 @@
                 .filter(h => h.date === todayDate)
                 .map(h => h.taskId);
 
-            return tasks.filter(task => {
-                // Managers see all tasks
-                if (currentUser.role === 'manager') {
-                    return true;
-                }
+            // Managers see all tasks
+            if (currentUser && currentUser.role === 'manager') {
+                return tasks;
+            }
 
-                // Cleaners only see tasks for today
+            // Cleaners only see tasks for today
+            return tasks.filter(task => {
                 if (completedToday.includes(task.id)) return false;
                 if (task.isAdhoc) return task.adhocDate === todayDate;
                 if (task.recurrence === 'weekdays' && isWeekend) return false;
@@ -497,7 +497,7 @@
                                                 🕐 ${task.time}
                                             </span>
                                             <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
-                                                ${task.isAdhoc ? `Ad-hoc: ${task.adhocDate}` : task.recurrence === 'weekly' ? `Weekly: ${task.weeklyDay.charAt(0).toUpperCase() + task.weeklyDay.slice(1)}` : task.recurrence === 'monthly' ? `Monthly: ${task.monthlyDate}${task.monthlyDate === '1' ? 'st' : task.monthlyDate === '2' ? 'nd' : task.monthlyDate === '3' ? 'rd' : task.monthlyDate === '21' ? 'st' : task.monthlyDate === '22' ? 'nd' : task.monthlyDate === '23' ? 'rd' : task.monthlyDate === '31' ? 'st' : 'th'}` : task.recurrence}
+                                                ${task.isAdhoc ? `Ad-hoc: ${task.adhocDate}` : task.recurrence === 'weekly' ? `Weekly: ${task.weeklyDay ? task.weeklyDay.charAt(0).toUpperCase() + task.weeklyDay.slice(1) : 'Not Set'}` : task.recurrence === 'monthly' ? `Monthly: ${task.monthlyDate ? task.monthlyDate + (task.monthlyDate === '1' ? 'st' : task.monthlyDate === '2' ? 'nd' : task.monthlyDate === '3' ? 'rd' : task.monthlyDate === '21' ? 'st' : task.monthlyDate === '22' ? 'nd' : task.monthlyDate === '23' ? 'rd' : task.monthlyDate === '31' ? 'st' : 'th') : 'Not Set'}` : task.recurrence}
                                             </span>
                                             ${activeTasks[task.id] ? '<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full">In Progress</span>' : ''}
                                         </div>
