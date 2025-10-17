@@ -253,6 +253,12 @@
                 .map(h => h.taskId);
 
             return tasks.filter(task => {
+                // Managers see all tasks
+                if (currentUser.role === 'manager') {
+                    return true;
+                }
+
+                // Cleaners only see tasks for today
                 if (completedToday.includes(task.id)) return false;
                 if (task.isAdhoc) return task.adhocDate === todayDate;
                 if (task.recurrence === 'weekdays' && isWeekend) return false;
